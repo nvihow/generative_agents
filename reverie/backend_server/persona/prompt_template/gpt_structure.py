@@ -6,15 +6,30 @@ Description: Wrapper functions for calling OpenAI APIs.
 """
 import json
 import random
-from openai import OpenAI
+from openai import AzureOpenAI
 import time 
 
 from utils import *
 
 # openai.api_key = openai_api_key
-client = OpenAI(
-  api_key=openai_api_key
+client = AzureOpenAI(
+    api_key=azure_key,
+    api_version="2023-03-15-preview",
+    azure_endpoint=azure_url
 )
+
+replacement_dict = {
+    "text-davinci-003": "test1", # gpt-3.5-turbo
+    "text-davinci-002": "test1", # gpt-3.5-turbo
+    "text-embedding-ada-002": "deployment-a56b6b39a32e45b18c7e186270b9b310",
+    "gpt-4-32k": "gpt-4-32k",
+    "gpt-4": "test-gpt-4",
+    "gpt-35-turbo": "test1",  # gpt-3.5-turbo
+    "gpt-3.5-turbo": "test1", # gpt-3.5-turbo
+}
+
+def GetModelName(model):
+    return replacement_dict.get(model)
 
 def temp_sleep(seconds=0.1):
   time.sleep(seconds)
@@ -22,12 +37,12 @@ def temp_sleep(seconds=0.1):
 def ChatGPT_single_request(prompt): 
   # temp_sleep()
 
-  print ("ChatGPT_single_request temp_sleep start")
-  temp_sleep(21)
-  print ("ChatGPT_single_request temp_sleep end")
+  # print ("ChatGPT_single_request temp_sleep start")
+  temp_sleep(0.1)
+  # print ("ChatGPT_single_request temp_sleep end")
 
   completion = client.chat.completions.create(
-    model="gpt-3.5-turbo", 
+    model=GetModelName("gpt-3.5-turbo"), 
     messages=[{"role": "user", "content": prompt}]
   )
   return completion.choices[0].message.content
@@ -49,15 +64,11 @@ def GPT4_request(prompt):
   RETURNS: 
     a str of GPT-3's response. 
   """
-  # temp_sleep()
-
-  print ("GPT4_request temp_sleep start")
-  temp_sleep(21)
-  print ("GPT4_request temp_sleep end")
+  temp_sleep(0.5)
 
   try: 
     completion = client.chat.completions.create(
-    model="gpt-4", 
+    model=GetModelName("gpt-4"), 
     messages=[{"role": "user", "content": prompt}]
     )
     return completion.choices[0].message.content
@@ -79,15 +90,11 @@ def ChatGPT_request(prompt):
   RETURNS: 
     a str of GPT-3's response. 
   """
-  # temp_sleep()
-  
-  print ("ChatGPT_request temp_sleep start")
-  temp_sleep(21)
-  print ("ChatGPT_request temp_sleep end")
+  temp_sleep()
 
   try: 
     completion = client.chat.completions.create(
-    model="gpt-3.5-turbo", 
+    model=GetModelName("gpt-3.5-turbo"), 
     messages=[{"role": "user", "content": prompt}]
     )
     return completion.choices[0].message.content
@@ -222,13 +229,16 @@ def GPT_request(prompt, gpt_parameter):
   RETURNS: 
     a str of GPT-3's response. 
   """
-  print ("GPT_request temp_sleep start")
-  temp_sleep(21)
-  print ("GPT_request temp_sleep end")
+  temp_sleep()
+  # print('GPT_request')
+  # print(GetModelName(gpt_parameter["engine"]))
+  # print(gpt_parameter["max_tokens"])
+  # print('prompt:')
+  # print(prompt)
+  # print('==============================')
   try: 
     response = client.completions.create(
-                model=gpt_parameter["engine"],
-                # model="gpt-3.5-turbo", 
+                model=GetModelName(gpt_parameter["engine"]),
                 prompt=prompt,
                 temperature=gpt_parameter["temperature"],
                 max_tokens=gpt_parameter["max_tokens"],
@@ -237,9 +247,10 @@ def GPT_request(prompt, gpt_parameter):
                 presence_penalty=gpt_parameter["presence_penalty"],
                 stream=gpt_parameter["stream"],
                 stop=gpt_parameter["stop"],)
-    return response['choices'][0]['text'].replace('\n', '').replace(' .', '.').strip()
+    return response.choices[0].text
   except: 
-    print ("TOKEN LIMIT EXCEEDED")
+    print ("TOKEN LIMIT EXCEEDED GPT_request")
+    print(response.json())
     return "TOKEN LIMIT EXCEEDED"
 
 
@@ -297,12 +308,9 @@ def get_embedding(text, model="text-embedding-ada-002"):
   if not text: 
     text = "this is blank"
 
+  temp_sleep()
 
-  print ("get_embedding temp_sleep start")
-  temp_sleep(21)
-  print ("get_embedding temp_sleep end")
-
-  embedding_response = client.embeddings.create(input=[text], model=model)
+  embedding_response = client.embeddings.create(input=[text], model=GetModelName(model))
 
   return embedding_response.data[0].embedding
 
